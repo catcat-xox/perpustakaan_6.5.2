@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+      "studentId": "2310001",
+      "name": "Mahasiswa 1",
+      "password": "12345"
+    },
+    {
+      "studentId": "2310002",
+      "name": "Mahasiswa 2",
+      "password": "12345"
+    },
+    {
+      "studentId": "2310003",
+      "name": "Mahasiswa 3",
+      "password": "12345"
+    }
+  ],
+  "borrowings": [
+   
+  ]
+}
