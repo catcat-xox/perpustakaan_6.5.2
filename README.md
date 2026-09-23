@@ -40,9 +40,79 @@ Frontend tidak menggunakan localStorage/sessionStorage untuk data aplikasi.
 
 ## 1. Architecture Sebelum dan Sesudah Dikembangkan
 
-Sebelum dikembangkan, sistem perpustakaan masih menggunakan aplikasi sederhana dan fitur-fiturnya masih berada dalam satu sistem. Jadi pengelolaan buku dan peminjaman belum dipisahkan.
+### 1.1 Architecture Sebelum Dikembangkan
+
+Sebelum dikembangkan, sistem perpustakaan masih menggunakan satu sistem terpusat. Fitur seperti pengelolaan data buku, login, peminjaman, dan pengembalian masih berada dalam satu aplikasi sehingga belum terdapat pemisahan service berdasarkan fungsi masing-masing.
+
+```text
+                 ┌──────────────────────────┐
+                 │          CLIENT          │
+                 │         Web / UI         │
+                 └────────────┬─────────────┘
+                              │
+                              │ HTTP
+                              ▼
+                 ┌──────────────────────────┐
+                 │   SISTEM PERPUSTAKAAN    │
+                 │       MONOLITHIC         │
+                 │                          │
+                 │ - Data Mahasiswa         │
+                 │ - Data Buku              │
+                 │ - Login                  │
+                 │ - Peminjaman             │
+                 │ - Pengembalian           │
+                 └────────────┬─────────────┘
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │   Database/Data  │
+                    │       JSON       │
+                    └──────────────────┘
+```
+
+### 1.2 Architecture Sesudah Dikembangkan
 
 Setelah dikembangkan, sistem menggunakan konsep **microservices**. Sistem dibagi menjadi frontend, **Book Service** pada port `3002`, dan **Borrowing Service** pada port `3001`. Book Service digunakan untuk mengelola data buku, sedangkan Borrowing Service digunakan untuk proses login, peminjaman, dan pengembalian. Kedua service tersebut saling berkomunikasi menggunakan API.
+
+```text
+                         ┌─────────────────┐
+                         │      CLIENT     │
+                         │     Web / UI    │
+                         └────────┬────────┘
+                                  │
+                                  │ HTTP REST
+                                  ▼
+                    ┌──────────────────────────┐
+                    │   BORROWING SERVICE      │
+                    │       Port 3001          │
+                    │                          │
+                    │ - Login                  │
+                    │ - Data Mahasiswa         │
+                    │ - Peminjaman             │
+                    │ - Pengembalian           │
+                    │ - Validasi Kuota ≤ 3     │
+                    └────────────┬─────────────┘
+                                 │
+                       HTTP REST │
+                                 │
+                                 ▼
+                    ┌──────────────────────────┐
+                    │      BOOK SERVICE        │
+                    │       Port 3002          │
+                    │                          │
+                    │ - Data Buku              │
+                    │ - Detail Buku            │
+                    │ - Ketersediaan Buku      │
+                    └────────────┬─────────────┘
+                                 │
+                                 │
+                    ┌────────────┴────────────┐
+                    ▼                         ▼
+          ┌──────────────────┐      ┌──────────────────┐
+          │ Borrowing Data   │      │    Books Data    │
+          │      JSON        │      │       JSON       │
+          └──────────────────┘      └──────────────────┘
+```
 
 ## 2. Microservice yang Dibuat
 
