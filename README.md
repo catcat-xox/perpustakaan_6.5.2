@@ -77,8 +77,10 @@ Namun, hasil dari AI tetap perlu dicek dan dijalankan kembali karena tidak semua
 
 ## 6. Struktur Repository
 
+Struktur repository project adalah sebagai berikut:
+
+```text
 perpustakaan-microservices/
-│
 ├── frontend/
 │   ├── index.html
 │   ├── style.css
@@ -107,3 +109,4 @@ perpustakaan-microservices/
 ├── TESTING.md
 ├── postman_collection.json
 └── .gitignore
+```
