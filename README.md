@@ -35,22 +35,6 @@ Data mahasiswa dan peminjaman disimpan di `borrowing-service/data.json`.
 Frontend tidak menggunakan localStorage/sessionStorage untuk data aplikasi.
 
 
-## Git & Repository Hygiene
-
-File `.gitignore` di root project mengecualikan `node_modules/`, file `.env`, dan file log agar dependency hasil instalasi dan konfigurasi lokal tidak ikut masuk repository.
-
-### Jika `node_modules` sudah terlanjur di-track Git
-
-Perintah berikut menghapus file dari **Git tracking/index**, tetapi tidak menghapus `node_modules` dari komputer lokal:
-
-```bash
-git rm -r --cached .
-git add .
-git commit -m "chore: add gitignore and remove generated files from tracking"
-git push
-```
-
-Setelah itu, `node_modules/` akan tetap tersedia secara lokal tetapi tidak lagi ditambahkan ke commit karena sudah dikecualikan oleh `.gitignore`.
 
 # Analisis Pengembangan Project
 
