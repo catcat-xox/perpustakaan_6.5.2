@@ -75,10 +75,35 @@ ChatGPT membantu dalam proses pembuatan struktur project dan penulisan kode. Sel
 
 Namun, hasil dari AI tetap perlu dicek dan dijalankan kembali karena tidak semua kode yang diberikan langsung sesuai dengan kebutuhan project.
 
-## 6. Masalah atau Kesalahan yang Ditemukan dari Hasil AI
+## 6. Struktur Repository
 
-Saat proses pengembangan, ditemukan adanya ketidaksesuaian endpoint antara frontend dan backend. Frontend menggunakan endpoint `/api/borrowings/user/:userId`, sedangkan endpoint yang dibuat sebelumnya menggunakan `/api/borrowings/student/:studentId`.
-
-Karena perbedaan tersebut, endpoint perlu disesuaikan dengan menambahkan alias `/api/borrowings/user/:userId` agar dapat digunakan oleh frontend.
-
-Selain itu, komunikasi antara Borrowing Service dan Book Service juga perlu dites kembali karena proses peminjaman dan pengembalian buku bergantung pada Book Service.
+perpustakaan-microservices/
+│
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── script.js
+│
+├── book-service/
+│   ├── server.js
+│   ├── books.json
+│   └── package.json
+│
+├── borrowing-service/
+│   ├── server.js
+│   ├── data.json
+│   └── package.json
+│
+├── docs/
+│   ├── architecture/
+│   │   ├── architecture-before.png
+│   │   └── architecture-after.png
+│   │
+│   └── ai-coding/
+│       ├── dokumentasi-ai.md
+│       └── prompts.md
+│
+├── README.md
+├── TESTING.md
+├── postman_collection.json
+└── .gitignore
