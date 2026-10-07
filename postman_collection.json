@@ -1,60 +1,102 @@
 {
   "info": {
-    "name": "Perpustakaan Microservices",
-    "_postman_id": "perpustakaan-microservices-final",
+    "name": "Perpustakaan Microservices - 1 Server",
+    "_postman_id": "perpustakaan-microservices-1-server",
+    "description": "Postman Collection untuk pengujian aplikasi perpustakaan dengan satu server utama pada port 3000.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Borrowing Health",
+      "name": "Server Root",
       "request": {
         "method": "GET",
-        "url": "http://localhost:3001/api/health"
+        "url": "http://localhost:3000/"
       }
     },
     {
-      "name": "Book Health",
+      "name": "Book Service Health",
       "request": {
         "method": "GET",
-        "url": "http://localhost:3002/api/health"
+        "url": "http://localhost:3000/api/books/health"
+      }
+    },
+    {
+      "name": "Borrowing Service Health",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/borrowings/health"
       }
     },
     {
       "name": "Login",
       "request": {
         "method": "POST",
-        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\"studentId\":\"2310001\",\"password\":\"12345\"}"
         },
-        "url": "http://localhost:3001/api/auth/login"
+        "url": "http://localhost:3000/api/auth/login"
       }
     },
     {
-      "name": "Books",
+      "name": "Get All Books",
       "request": {
         "method": "GET",
-        "url": "http://localhost:3002/api/books"
+        "url": "http://localhost:3000/api/books"
+      }
+    },
+    {
+      "name": "Get Book by ID",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/books/BK001"
       }
     },
     {
       "name": "Borrowing History",
       "request": {
         "method": "GET",
-        "url": "http://localhost:3001/api/borrowings/user/2310001"
+        "url": "http://localhost:3000/api/borrowings/user/2310001"
       }
     },
     {
       "name": "Borrow Book",
       "request": {
         "method": "POST",
-        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\"studentId\":\"2310001\",\"bookId\":\"BK001\"}"
         },
-        "url": "http://localhost:3001/api/borrowings"
+        "url": "http://localhost:3000/api/borrowings"
+      }
+    },
+    {
+      "name": "Return Book",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"returned\"}"
+        },
+        "url": "http://localhost:3000/api/borrowings/BR_ID"
       }
     }
   ]

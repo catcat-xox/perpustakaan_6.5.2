@@ -1,11 +1,21 @@
 # TESTING
 
+Project menggunakan satu server utama pada port `3000`.
+
 ## Health check
-- GET http://localhost:3001/api/health
-- GET http://localhost:3002/api/health
+
+```http
+GET http://localhost:3000/api/books/health
+GET http://localhost:3000/api/borrowings/health
+```
 
 ## Login
-POST http://localhost:3001/api/auth/login
+
+```http
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+```
+
 ```json
 {
   "studentId": "2310001",
@@ -14,16 +24,60 @@ POST http://localhost:3001/api/auth/login
 ```
 
 ## Catalog
-GET http://localhost:3002/api/books
+
+```http
+GET http://localhost:3000/api/books
+```
+
+## Get book by ID
+
+```http
+GET http://localhost:3000/api/books/BK001
+```
 
 ## History
-GET http://localhost:3001/api/borrowings/user/2310001
+
+```http
+GET http://localhost:3000/api/borrowings/student/2310001
+```
 
 ## Borrow
-POST http://localhost:3001/api/borrowings
+
+Use a book that is initially available, for example `BK004`:
+
+```http
+POST http://localhost:3000/api/borrowings
+Content-Type: application/json
+```
+
 ```json
 {
   "studentId": "2310001",
-  "bookId": "BK001"
+  "bookId": "BK004"
 }
+```
+
+## Return
+
+Replace `BR_ID` with an active loan ID:
+
+```http
+PATCH http://localhost:3000/api/borrowings/BR_ID
+Content-Type: application/json
+```
+
+```json
+{
+  "status": "returned"
+}
+```
+
+## Database verification
+
+```sql
+USE perpustakaan;
+
+SELECT * FROM users;
+SELECT * FROM books;
+SELECT * FROM loans;
 ```

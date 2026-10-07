@@ -1,0 +1,18 @@
+{
+    "name": "perpustakaan-microservices",
+    "version": "1.0.0",
+    "description": "Aplikasi perpustakaan dengan Book Service dan Borrowing Service pada satu server",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "axios": "^1.7.9",
+        "bcryptjs": "^3.0.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.6.1",
+        "express": "^4.21.2",
+        "jsonwebtoken": "^9.0.3",
+        "mysql2": "^3.14.3"
+    }
+}
