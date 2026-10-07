@@ -1,182 +1,135 @@
 # Perpustakaan Microservices
 
-Project terdiri dari frontend asli dan dua microservice:
+Project ini mempertahankan frontend dan route API yang sudah ada, tetapi penyimpanan data telah dimigrasikan dari file JSON ke MySQL. Frontend tidak menggunakan `localStorage`/`sessionStorage` untuk data aplikasi.
 
-- Frontend: folder `frontend/`
-- Book Service: port 3002
-- Borrowing Service: port 3001
+## Struktur utama
 
-## Menjalankan
+- `frontend/` — HTML, CSS, dan JavaScript asli
+- `book-service/server.js` — katalog buku dan status ketersediaan
+- `borrowing-service/server.js` — login, peminjaman, dan pengembalian
+- `config/db.js` — connection pool MySQL menggunakan `mysql2/promise`
+- `database.sql` — DDL dan seeder database
+- `.env.example` — template konfigurasi database
+- `.env` — konfigurasi lokal (jangan di-commit)
+- `server.js` — satu server utama pada port 3000
 
-Terminal 1:
+## Database
+
+Database yang digunakan: `perpustakaan`
+
+Tabel:
+
+- `users` — id, NIM, nama, password
+- `books` — id, judul, penulis, kategori, sampul, status
+- `loans` — id, NIM, id buku, tanggal pinjam, batas pengembalian, status, tanggal dikembalikan
+
+Relasi:
+
+```text
+users.nim 1 ───────< loans.nim
+books.id  1 ───────< loans.id_buku
+```
+
+## 1. Persiapan MySQL
+
+Pastikan MySQL/MariaDB sudah berjalan, misalnya melalui XAMPP.
+
+Import `database.sql` melalui phpMyAdmin menu **Import/SQL**, atau melalui MySQL CLI:
+
 ```bash
-cd book-service
+mysql -u root -p < database.sql
+```
+
+Sesuaikan `.env` dengan konfigurasi MySQL lokal Anda:
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=
+DB_NAME=perpustakaan
+DB_PORT=3306
+```
+
+## 2. Instal dependency
+
+Dari root project:
+
+```bash
 npm install
+```
+
+Dependency utama:
+
+- Express
+- Axios
+- CORS
+- dotenv
+- mysql2
+
+## 3. Jalankan aplikasi
+
+Cukup jalankan satu server dari root:
+
+```bash
 npm start
 ```
 
-Terminal 2:
+Server:
+
+```text
+http://localhost:3000
+```
+
+Kemudian buka alamat tersebut di browser.
+
+Tidak perlu menjalankan `book-service` dan `borrowing-service` sebagai server terpisah karena keduanya dipasang sebagai router ke server utama.
+
+## 4. Akun uji
+
+- NIM: `2310001` — Password: `12345`
+- NIM: `2310002` — Password: `12345`
+- NIM: `2310003` — Password: `12345`
+
+## 5. Aturan bisnis yang dipertahankan
+
+- Login menggunakan NIM dan password.
+- Katalog buku dan status ketersediaan berasal dari MySQL.
+- Maksimal 3 buku aktif per mahasiswa.
+- Masa pinjam otomatis 7 hari.
+- Buku harus tersedia sebelum dipinjam.
+- Saat peminjaman berhasil, status buku menjadi `borrowed`.
+- Saat dikembalikan, status buku menjadi `available`.
+
+## 6. API utama
+
+```text
+GET    /api/books/health
+GET    /api/books
+GET    /api/books/:id
+POST   /api/books
+PATCH  /api/books/:id/status
+
+GET    /api/borrowings/health
+POST   /api/auth/login
+GET    /api/borrowings/student/:studentId
+GET    /api/borrowings/user/:userId
+POST   /api/borrowings
+PATCH  /api/borrowings/:id
+```
+
+## 7. Catatan keamanan
+
+File `.env` dikecualikan oleh `.gitignore`. Jangan mengunggah password database asli ke repository. Password mahasiswa pada seeder masih plaintext untuk mempertahankan perilaku project tugas; untuk aplikasi produksi, gunakan password hashing seperti bcrypt.
+
+## Git & Repository Hygiene
+
+File `.gitignore` mengecualikan `node_modules/`, file `.env`, dan file log agar dependency hasil instalasi dan konfigurasi lokal tidak ikut masuk repository.
+
+Jika `node_modules` sudah terlanjur di-track Git:
+
 ```bash
-cd borrowing-service
-npm install
-npm start
-```
-
-Frontend dapat dibuka menggunakan Live Server/HTTP server pada folder `frontend`.
-
-Akun uji:
-- NIM: 2310001, Password: 12345
-- NIM: 2310002, Password: 12345
-- NIM: 2310003, Password: 12345
-
-Data buku disimpan terpisah di `book-service/books.json`.
-Data mahasiswa dan peminjaman disimpan di `borrowing-service/data.json`.
-
-Frontend tidak menggunakan localStorage/sessionStorage untuk data aplikasi.
-
-
-
-# Analisis Pengembangan Project
-
-## 1. Architecture Sebelum dan Sesudah Dikembangkan
-
-### 1.1 Architecture Sebelum Dikembangkan
-
-Sebelum dikembangkan, sistem perpustakaan masih menggunakan satu sistem terpusat. Fitur seperti pengelolaan data buku, login, peminjaman, dan pengembalian masih berada dalam satu aplikasi sehingga belum terdapat pemisahan service berdasarkan fungsi masing-masing.
-
-```text
-                 ┌──────────────────────────┐
-                 │          CLIENT          │
-                 │         Web / UI         │
-                 └────────────┬─────────────┘
-                              │
-                              │ HTTP
-                              ▼
-                 ┌──────────────────────────┐
-                 │   SISTEM PERPUSTAKAAN    │
-                 │       MONOLITHIC         │
-                 │                          │
-                 │ - Data Mahasiswa         │
-                 │ - Data Buku              │
-                 │ - Login                  │
-                 │ - Peminjaman             │
-                 │ - Pengembalian           │
-                 └────────────┬─────────────┘
-                              │
-                              ▼
-                    ┌──────────────────┐
-                    │   Database/Data  │
-                    │       JSON       │
-                    └──────────────────┘
-```
-
-### 1.2 Architecture Sesudah Dikembangkan
-
-Setelah dikembangkan, sistem menggunakan konsep **microservices**. Sistem dibagi menjadi frontend, **Book Service** pada port `3002`, dan **Borrowing Service** pada port `3001`. Book Service digunakan untuk mengelola data buku, sedangkan Borrowing Service digunakan untuk proses login, peminjaman, dan pengembalian. Kedua service tersebut saling berkomunikasi menggunakan API.
-
-```text
-                         ┌─────────────────┐
-                         │      CLIENT     │
-                         │     Web / UI    │
-                         └────────┬────────┘
-                                  │
-                                  │ HTTP REST
-                                  ▼
-                    ┌──────────────────────────┐
-                    │   BORROWING SERVICE      │
-                    │       Port 3001          │
-                    │                          │
-                    │ - Login                  │
-                    │ - Data Mahasiswa         │
-                    │ - Peminjaman             │
-                    │ - Pengembalian           │
-                    │ - Validasi Kuota ≤ 3     │
-                    └────────────┬─────────────┘
-                                 │
-                       HTTP REST │
-                                 │
-                                 ▼
-                    ┌──────────────────────────┐
-                    │      BOOK SERVICE        │
-                    │       Port 3002          │
-                    │                          │
-                    │ - Data Buku              │
-                    │ - Detail Buku            │
-                    │ - Ketersediaan Buku      │
-                    └────────────┬─────────────┘
-                                 │
-                                 │
-                    ┌────────────┴────────────┐
-                    ▼                         ▼
-          ┌──────────────────┐      ┌──────────────────┐
-          │ Borrowing Data   │      │    Books Data    │
-          │      JSON        │      │       JSON       │
-          └──────────────────┘      └──────────────────┘
-```
-
-## 2. Microservice yang Dibuat
-
-Pada project ini terdapat 2 microservice, yaitu:
-
-* **Book Service**, digunakan untuk mengelola data buku seperti melihat daftar buku, melihat detail buku, menambahkan buku, dan mengubah status ketersediaan buku.
-* **Borrowing Service**, digunakan untuk login mahasiswa, melihat data peminjaman, melakukan peminjaman, dan mengembalikan buku.
-
-Book Service menyimpan data buku di `books.json`, sedangkan Borrowing Service menggunakan `data.json` untuk menyimpan data mahasiswa dan peminjaman.
-
-## 3. Technology yang Digunakan
-
-Technology yang digunakan dalam project ini yaitu:
-
-* HTML, CSS, dan JavaScript untuk membuat tampilan frontend.
-* Node.js untuk menjalankan backend.
-* Express.js untuk membuat API.
-* Axios untuk menghubungkan Book Service dan Borrowing Service.
-* CORS untuk membantu komunikasi antara frontend dan backend.
-* JSON untuk penyimpanan data.
-* Postman untuk melakukan testing API.
-
-## 4. AI Coding Tool yang Digunakan
-
-AI Coding Tool yang digunakan dalam pengembangan project ini adalah **ChatGPT**.
-
-## 5. Bagaimana AI Membantu Proses Pengembangan
-
-ChatGPT membantu dalam proses pembuatan struktur project dan penulisan kode. Selain itu, AI juga membantu membuat API untuk buku dan peminjaman, menghubungkan antar-service, serta membantu mencari penyebab error ketika program tidak berjalan sesuai yang diharapkan.
-
-Namun, hasil dari AI tetap perlu dicek dan dijalankan kembali karena tidak semua kode yang diberikan langsung sesuai dengan kebutuhan project.
-
-## 6. Struktur Repository
-
-Struktur repository project adalah sebagai berikut:
-
-```text
-perpustakaan-microservices/
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   └── script.js
-│
-├── book-service/
-│   ├── server.js
-│   ├── books.json
-│   └── package.json
-│
-├── borrowing-service/
-│   ├── server.js
-│   ├── data.json
-│   └── package.json
-│
-├── docs/
-│   ├── architecture/
-│   │   ├── architecture-before.png
-│   │   └── architecture-after.png
-│   │
-│   └── ai-coding/
-│       ├── dokumentasi-ai.md
-│       └── prompts.md
-│
-├── README.md
-├── TESTING.md
-├── postman_collection.json
-└── .gitignore
+git rm -r --cached .
+git add .
+git commit -m "chore: add gitignore and remove generated files from tracking"
+git push
 ```
