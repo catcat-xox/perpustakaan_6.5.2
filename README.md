@@ -1,135 +1,153 @@
-# Perpustakaan Microservices
+# Perpustakaan Microservices — UTS Vibe Coding
 
-Project ini mempertahankan frontend dan route API yang sudah ada, tetapi penyimpanan data telah dimigrasikan dari file JSON ke MySQL. Frontend tidak menggunakan `localStorage`/`sessionStorage` untuk data aplikasi.
+Proyek ini adalah kelanjutan dari proyek kelompok yang sudah ada. Struktur awal dipertahankan: `book-service/`, `borrowing-service/`, `config/`, `middleware/`, `routes/`, `frontend/`, `database.sql`, dan `server.js`. Folder `docs/` dan `api-test/` ditambahkan hanya untuk memenuhi deliverables UTS.
 
-## Struktur utama
-
-- `frontend/` — HTML, CSS, dan JavaScript asli
-- `book-service/server.js` — katalog buku dan status ketersediaan
-- `borrowing-service/server.js` — login, peminjaman, dan pengembalian
-- `config/db.js` — connection pool MySQL menggunakan `mysql2/promise`
-- `database.sql` — DDL dan seeder database
-- `.env.example` — template konfigurasi database
-- `.env` — konfigurasi lokal (jangan di-commit)
-- `server.js` — satu server utama pada port 3000
-
-## Database
-
-Database yang digunakan: `perpustakaan`
-
-Tabel:
-
-- `users` — id, NIM, nama, password
-- `books` — id, judul, penulis, kategori, sampul, status
-- `loans` — id, NIM, id buku, tanggal pinjam, batas pengembalian, status, tanggal dikembalikan
-
-Relasi:
+## Struktur proyek
 
 ```text
-users.nim 1 ───────< loans.nim
-books.id  1 ───────< loans.id_buku
+perpustakaan-microservices/
+├── book-service/
+│   └── server.js
+├── borrowing-service/
+│   └── server.js
+├── config/
+│   └── db.js
+├── database.sql
+├── frontend/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+├── middleware/
+│   └── auth.js
+├── routes/
+│   └── authRoutes.js
+├── scripts/
+│   └── hashPasswords.js
+├── docs/
+│   ├── PRD.md
+│   ├── API-CONTRACT.md
+│   ├── CODE_REVIEW_LOG.md
+│   └── AI_PROMPTS.md
+├── api-test/
+│   └── collection.json
+├── postman_collection.json
+├── TESTING.md
+├── .env.example
+├── package.json
+└── server.js
 ```
 
-## 1. Persiapan MySQL
+## Teknologi
+- Node.js dan Express
+- MySQL/MariaDB dengan `mysql2/promise`
+- JWT untuk autentikasi (`jsonwebtoken`)
+- bcrypt (`bcryptjs`) untuk memverifikasi password
+- Postman untuk pengujian API
+- Frontend HTML/CSS/JavaScript lama tetap dipertahankan
 
-Pastikan MySQL/MariaDB sudah berjalan, misalnya melalui XAMPP.
+## Kebutuhan
+- Node.js versi 18 atau lebih baru
+- MySQL/MariaDB (misalnya XAMPP)
+- Postman (untuk tes API)
 
-Import `database.sql` melalui phpMyAdmin menu **Import/SQL**, atau melalui MySQL CLI:
+## 1. Konfigurasi database
 
-```bash
-mysql -u root -p < database.sql
-```
-
-Sesuaikan `.env` dengan konfigurasi MySQL lokal Anda:
-
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASS=
-DB_NAME=perpustakaan
-DB_PORT=3306
-```
+1. Jalankan MySQL dari XAMPP.
+2. Buka phpMyAdmin.
+3. Impor file `database.sql`. File ini membuat database `perpustakaan`, tabel `users`, `books`, `loans`, relasi foreign key, serta data uji.
+4. Periksa `.env` di root proyek. Nilai default disediakan untuk instalasi lokal:
+   ```env
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASS=
+   DB_NAME=perpustakaan
+   DB_PORT=3306
+   JWT_SECRET=dev-only-change-this-secret-before-deployment
+   JWT_EXPIRES_IN=2h
+   ```
+   Sesuaikan nama pengguna/password MySQL jika berbeda. Secret default hanya untuk development lokal; ganti sebelum deployment.
 
 ## 2. Instal dependency
 
-Dari root project:
+Buka terminal di root folder `perpustakaan-microservices/`:
 
 ```bash
 npm install
 ```
 
-Dependency utama:
-
-- Express
-- Axios
-- CORS
-- dotenv
-- mysql2
-
-## 3. Jalankan aplikasi
-
-Cukup jalankan satu server dari root:
+## 3. Jalankan dan periksa backend
 
 ```bash
+npm run check
 npm start
 ```
 
-Server:
+Server utama berjalan di `http://localhost:3000`. Jalankan **satu server saja**; `book-service/server.js` dan `borrowing-service/server.js` adalah router yang dipasang oleh `server.js`, bukan server terpisah.
 
-```text
-http://localhost:3000
-```
-
-Kemudian buka alamat tersebut di browser.
-
-Tidak perlu menjalankan `book-service` dan `borrowing-service` sebagai server terpisah karena keduanya dipasang sebagai router ke server utama.
+Buka `http://localhost:3000/` untuk frontend. Health checks:
+- `GET http://localhost:3000/api/books/health`
+- `GET http://localhost:3000/api/borrowings/health`
 
 ## 4. Akun uji
 
-- NIM: `2310001` — Password: `12345`
-- NIM: `2310002` — Password: `12345`
-- NIM: `2310003` — Password: `12345`
+Semua akun seed menggunakan password `12345` (password disimpan sebagai bcrypt hash di database).
 
-## 5. Aturan bisnis yang dipertahankan
+| NIM | Password | Kegunaan |
+|---|---|---|
+| `2310001` | `12345` | Seed memiliki 3 peminjaman aktif untuk menguji limit |
+| `2310002` | `12345` | Pengujian pinjam dan kembali |
+| `2310003` | `12345` | Akun pengujian tambahan |
 
-- Login menggunakan NIM dan password.
-- Katalog buku dan status ketersediaan berasal dari MySQL.
-- Maksimal 3 buku aktif per mahasiswa.
-- Masa pinjam otomatis 7 hari.
-- Buku harus tersedia sebelum dipinjam.
-- Saat peminjaman berhasil, status buku menjadi `borrowed`.
-- Saat dikembalikan, status buku menjadi `available`.
+Buku `BK001`–`BK003` diset sedang dipinjam pada seed; `BK004`–`BK006` tersedia. Seed transaksi demo dapat diimpor ulang untuk reset status data demo, tetapi gunakan database uji, bukan database berisi data penting.
 
-## 6. API utama
+## 5. API utama
 
-```text
-GET    /api/books/health
-GET    /api/books
-GET    /api/books/:id
-POST   /api/books
-PATCH  /api/books/:id/status
+Base URL: `http://localhost:3000`
 
-GET    /api/borrowings/health
-POST   /api/auth/login
-GET    /api/borrowings/student/:studentId
-GET    /api/borrowings/user/:userId
-POST   /api/borrowings
-PATCH  /api/borrowings/:id
+| Method | Endpoint | Tujuan | Login |
+|---|---|---|---|
+| POST | `/api/auth/login` | Login dan memperoleh JWT | Tidak |
+| GET | `/api/books` | Daftar buku | Ya |
+| GET | `/api/books/:id` | Detail buku | Ya |
+| POST | `/api/borrowings` | Meminjam buku | Ya |
+| GET | `/api/borrowings` | Riwayat akun login | Ya |
+| GET | `/api/borrowings/student/:studentId` | Riwayat kompatibilitas | Ya, NIM harus milik token |
+| PATCH | `/api/borrowings/:id/return` | Mengembalikan buku | Ya |
+| PATCH | `/api/borrowings/:id` | Route pengembalian lama | Ya |
+
+Header endpoint terlindungi:
+
+```http
+Authorization: Bearer <JWT>
+Content-Type: application/json
 ```
 
-## 7. Catatan keamanan
+Detail request, response, validasi, dan status code ada di `docs/API-CONTRACT.md`.
 
-File `.env` dikecualikan oleh `.gitignore`. Jangan mengunggah password database asli ke repository. Password mahasiswa pada seeder masih plaintext untuk mempertahankan perilaku project tugas; untuk aplikasi produksi, gunakan password hashing seperti bcrypt.
+## 6. Business rules yang diterapkan
 
-## Git & Repository Hygiene
+- Maksimal 3 peminjaman aktif per mahasiswa.
+- Buku tidak tersedia ditolak.
+- Jatuh tempo ditetapkan database menjadi tanggal pinjam + 7 hari.
+- Peminjam ditentukan oleh JWT, bukan nilai `studentId` yang dikirim klien.
+- Peminjaman dan pengembalian memperbarui transaksi dan status buku dalam transaksi SQL.
+- Mahasiswa hanya dapat melihat riwayat dan mengembalikan transaksi miliknya. Frontend menyediakan tombol Kembalikan Buku pada setiap transaksi aktif.
+- Status buku tidak dapat diubah secara langsung lewat `PATCH /api/books/:id/status`; perubahan harus melalui alur pinjam/kembali.
 
-File `.gitignore` mengecualikan `node_modules/`, file `.env`, dan file log agar dependency hasil instalasi dan konfigurasi lokal tidak ikut masuk repository.
+## 7. Pengujian Postman
 
-Jika `node_modules` sudah terlanjur di-track Git:
+1. Pastikan MySQL dan server Node.js berjalan.
+2. Impor `api-test/collection.json` (atau file kompatibel `postman_collection.json`) ke Postman.
+3. Jalankan request collection dari atas ke bawah. Dua login valid menyimpan token pada collection variables: `tokenLimit` untuk mahasiswa 2310001 dan `token` untuk mahasiswa 2310002.
+4. Collection menguji login valid/salah, token hilang, katalog, ID buku tidak ada, riwayat sendiri/akun lain, limit tiga buku, buku tidak tersedia, peminjaman berhasil, tanggal jatuh tempo tujuh hari, pengembalian, pengembalian ganda, dan perubahan status langsung yang ditolak.
+5. Setelah menjalankan tes, simpan screenshot hasil aktual ke folder `api-test/` untuk bukti UTS. Collection tidak berarti semua tes sudah lulus sebelum dijalankan.
 
-```bash
-git rm -r --cached .
-git add .
-git commit -m "chore: add gitignore and remove generated files from tracking"
-git push
-```
+## 8. Code review dan penggunaan AI
+
+- Temuan review awal ada di `docs/CODE_REVIEW_LOG.md`.
+- Prompt pengembangan dicatat di `docs/AI_PROMPTS.md`.
+- Anggota kelompok harus menguji ulang, mengisi reviewer/tanggal, mencatat hasil aktual, dan memahami semua perubahan sebelum mengumpulkan.
+- PRD ada di `docs/PRD.md`; lengkapi nama/NIM anggota dan URL repository.
+
+## Catatan
+File `.env` lokal tidak boleh di-commit ke repository. Gunakan `.env.example` sebagai template. Jangan gunakan data/password uji pada sistem produksi.

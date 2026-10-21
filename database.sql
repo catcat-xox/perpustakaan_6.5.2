@@ -62,9 +62,9 @@ CREATE TABLE IF NOT EXISTS loans (
 -- =========================================================
 INSERT INTO users (id, nim, nama, password)
 VALUES
-    (1, '2310001', 'Mahasiswa 1', '12345'),
-    (2, '2310002', 'Mahasiswa 2', '12345'),
-    (3, '2310003', 'Mahasiswa 3', '12345')
+    (1, '2310001', 'Mahasiswa 1', '$2b$10$sAtqgkmGGeZBw4yZKkut9.5G0Xhk3vNbCgwUy.LEkDj5r3vCME5HW'),
+    (2, '2310002', 'Mahasiswa 2', '$2b$10$sAtqgkmGGeZBw4yZKkut9.5G0Xhk3vNbCgwUy.LEkDj5r3vCME5HW'),
+    (3, '2310003', 'Mahasiswa 3', '$2b$10$sAtqgkmGGeZBw4yZKkut9.5G0Xhk3vNbCgwUy.LEkDj5r3vCME5HW')
 ON DUPLICATE KEY UPDATE
     nim = VALUES(nim),
     nama = VALUES(nama),
@@ -135,13 +135,19 @@ ON DUPLICATE KEY UPDATE
 -- SEED LOANS
 -- Berdasarkan borrowing-service/data.json
 -- =========================================================
+-- Hapus hanya transaksi demo lama agar impor ulang seed tetap konsisten.
+DELETE FROM loans
+WHERE id IN (
+    'BR1790948746781', 'BR1790948748085', 'BR1790948749174',
+    'BR1790953676532', 'BR_SEED_001', 'BR_SEED_002', 'BR_SEED_003'
+);
+
 INSERT INTO loans
     (id, nim, id_buku, tanggal_pinjam, batas_pengembalian, status, tanggal_dikembalikan)
 VALUES
-    ('BR1790948746781', '2310001', 'BK001', '2026-10-02', '2026-10-09', 'returned', '2026-10-02'),
-    ('BR1790948748085', '2310001', 'BK002', '2026-10-02', '2026-10-09', 'borrowed', NULL),
-    ('BR1790948749174', '2310001', 'BK003', '2026-10-02', '2026-10-09', 'borrowed', NULL),
-    ('BR1790953676532', '2310001', 'BK001', '2026-10-02', '2026-10-09', 'borrowed', NULL)
+    ('BR_SEED_001', '2310001', 'BK001', CURDATE() - INTERVAL 2 DAY, CURDATE() + INTERVAL 5 DAY, 'borrowed', NULL),
+    ('BR_SEED_002', '2310001', 'BK002', CURDATE() - INTERVAL 2 DAY, CURDATE() + INTERVAL 5 DAY, 'borrowed', NULL),
+    ('BR_SEED_003', '2310001', 'BK003', CURDATE() - INTERVAL 2 DAY, CURDATE() + INTERVAL 5 DAY, 'borrowed', NULL)
 ON DUPLICATE KEY UPDATE
     nim = VALUES(nim),
     id_buku = VALUES(id_buku),
@@ -149,3 +155,7 @@ ON DUPLICATE KEY UPDATE
     batas_pengembalian = VALUES(batas_pengembalian),
     status = VALUES(status),
     tanggal_dikembalikan = VALUES(tanggal_dikembalikan);
+
+-- Sinkronkan status awal buku dengan transaksi aktif pada seed.
+UPDATE books SET status = 'borrowed' WHERE id IN ('BK001', 'BK002', 'BK003');
+UPDATE books SET status = 'available' WHERE id IN ('BK004', 'BK005', 'BK006');

@@ -161,47 +161,11 @@ router.post("/books", async (req, res) => {
 // UPDATE STATUS BUKU
 // ===============================
 router.patch("/books/:id/status", async (req, res) => {
-    if (typeof req.body.available !== "boolean") {
-        return res.status(400).json({
-            message: "Field available harus bernilai boolean."
-        });
-    }
-
-    try {
-        const [result] = await db.query(`
-            UPDATE books
-            SET status = ?
-            WHERE id = ?
-        `, [
-            req.body.available ? "available" : "borrowed",
-            req.params.id
-        ]);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: "Buku tidak ditemukan."
-            });
-        }
-
-        const [rows] = await db.query(`
-            SELECT
-                id,
-                judul,
-                penulis,
-                category,
-                sampul,
-                status
-            FROM books
-            WHERE id = ?
-        `, [req.params.id]);
-
-        res.json(mapBook(rows[0]));
-    } catch (error) {
-        console.error("PATCH /books/:id/status:", error);
-        res.status(500).json({
-            message: "Gagal memperbarui status buku."
-        });
-    }
+    // Status buku hanya boleh berubah melalui transaksi peminjaman/pengembalian.
+    // Endpoint dipertahankan untuk kompatibilitas, tetapi perubahan langsung ditolak.
+    return res.status(403).json({
+        message: "Status buku hanya dapat diubah melalui endpoint peminjaman atau pengembalian."
+    });
 });
 
 // ===============================

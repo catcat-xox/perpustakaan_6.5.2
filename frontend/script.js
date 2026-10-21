@@ -9,6 +9,7 @@ const MAX_ACTIVE_LOANS = 3;
 // Session user is intentionally kept only in application memory.
 // No localStorage/sessionStorage is used.
 let currentUser = null;
+let currentToken = null;
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -20,6 +21,10 @@ async function init() {
 function bindEvents() {
     document.getElementById("loginForm").addEventListener("submit", handleLogin);
     document.getElementById("logoutButton").addEventListener("click", handleLogout);
+    document.getElementById("loanList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-return-id]");
+        if (button) returnBook(button.dataset.returnId, button.dataset.bookId);
+    });
 
     document.querySelectorAll(".nav-link").forEach((button) => {
         button.addEventListener("click", () => switchSection(button.dataset.section));
@@ -27,15 +32,25 @@ function bindEvents() {
 }
 
 async function apiRequest(url, options = {}) {
+    const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+    };
+
+    // Tambahkan JWT jika user sudah login
+    if (currentToken) {
+        headers.Authorization =
+            `Bearer ${currentToken}`;
+    }
+
     const response = await fetch(url, {
         ...options,
-        headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {})
-        }
+        headers
     });
 
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(
+        () => ({})
+    );
 
     if (!response.ok) {
         const error = new Error(
@@ -69,16 +84,21 @@ async function handleLogin(event) {
         const result = await apiRequest(`${API.borrowing}/auth/login`, {
             method: "POST",
             body: JSON.stringify({
-                studentId: nim,
+                nim,
                 password
             })
         });
 
         // Keep only the authenticated user in application memory.
+
+        currentToken = result.token;
+
         currentUser = {
             studentId: result.user.studentId,
             name: result.user.name
         };
+
+
 
         message.textContent = "";
         document.getElementById("loginForm").reset();
@@ -91,6 +111,8 @@ async function handleLogin(event) {
 
 function handleLogout() {
     currentUser = null;
+    currentToken = null;
+    
     showLogin();
 }
 
@@ -393,10 +415,47 @@ async function renderLoans() {
                             ${formatDateDisplay(dueDate)}
                         </strong>
                     </p>
+                    <button
+                        class="btn btn-return"
+                        type="button"
+                        data-return-id="${escapeAttribute(loan.id)}"
+                        data-book-id="${escapeAttribute(loan.bookId)}"
+                    >Kembalikan Buku</button>
                 </div>
             </article>
         `;
     }).join("");
+}
+
+async function returnBook(loanId, bookId) {
+    if (!currentUser || !currentToken) {
+        showLogin();
+        return;
+    }
+
+    const button = document.querySelector(`[data-return-id="${CSS.escape(String(loanId))}"]`);
+    if (button) {
+        button.disabled = true;
+        button.textContent = "Memproses...";
+    }
+
+    try {
+        const result = await apiRequest(
+            `${API.borrowing}/borrowings/${encodeURIComponent(loanId)}/return`,
+            { method: "PATCH" }
+        );
+        showAppMessage(result.message || "Buku berhasil dikembalikan.");
+        await Promise.all([renderBooks(), renderLoans()]);
+    } catch (error) {
+        showAppMessage(`Pengembalian gagal. ${error.message || "Silakan coba lagi."}`);
+        await renderLoans().catch(() => {});
+    } finally {
+        const currentButton = document.querySelector(`[data-return-id="${CSS.escape(String(loanId))}"]`);
+        if (currentButton) {
+            currentButton.disabled = false;
+            currentButton.textContent = "Kembalikan Buku";
+        }
+    }
 }
 
 function updateLoanCounters(count) {

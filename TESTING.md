@@ -1,83 +1,91 @@
-# TESTING
+# TESTING — Perpustakaan Microservices
 
-Project menggunakan satu server utama pada port `3000`.
+Pastikan database MySQL/MariaDB sudah diimpor dari `database.sql`, lalu jalankan server utama dari root proyek:
 
-## Health check
-
-```http
-GET http://localhost:3000/api/books/health
-GET http://localhost:3000/api/borrowings/health
+```bash
+npm install
+npm run check
+npm start
 ```
 
-## Login
+Base URL: `http://localhost:3000`
+
+## 1. Login
 
 ```http
-POST http://localhost:3000/api/auth/login
+POST /api/auth/login
 Content-Type: application/json
 ```
 
 ```json
 {
-  "studentId": "2310001",
+  "nim": "2310002",
   "password": "12345"
 }
 ```
 
-## Catalog
+Simpan nilai `token` dari response. Untuk endpoint terlindungi, kirim header:
 
 ```http
-GET http://localhost:3000/api/books
+Authorization: Bearer <JWT>
 ```
 
-## Get book by ID
+## 2. Katalog buku
 
 ```http
-GET http://localhost:3000/api/books/BK001
+GET /api/books
+GET /api/books/BK004
 ```
 
-## History
+Gunakan token JWT. `BK004` adalah salah satu buku yang tersedia pada seed awal.
+
+## 3. Riwayat peminjaman
 
 ```http
-GET http://localhost:3000/api/borrowings/student/2310001
+GET /api/borrowings
 ```
 
-## Borrow
+Endpoint ini hanya mengembalikan riwayat akun yang sedang login. Route kompatibilitas `GET /api/borrowings/student/2310002` juga tersedia dan hanya menerima NIM yang sama dengan NIM di token.
 
-Use a book that is initially available, for example `BK004`:
+## 4. Pinjam buku
 
 ```http
-POST http://localhost:3000/api/borrowings
+POST /api/borrowings
+Authorization: Bearer <JWT>
 Content-Type: application/json
 ```
 
 ```json
 {
-  "studentId": "2310001",
   "bookId": "BK004"
 }
 ```
 
-## Return
+Identitas mahasiswa diambil dari JWT. Jangan mengandalkan `studentId` yang dikirim dalam body. Pinjam dengan akun `2310002` untuk skenario sukses. Akun `2310001` memiliki tiga transaksi aktif pada seed untuk menguji penolakan peminjaman keempat.
 
-Replace `BR_ID` with an active loan ID:
+## 5. Kembalikan buku
+
+Ganti `BR_ID` dengan ID peminjaman dari response:
 
 ```http
-PATCH http://localhost:3000/api/borrowings/BR_ID
-Content-Type: application/json
+PATCH /api/borrowings/BR_ID/return
+Authorization: Bearer <JWT>
 ```
 
-```json
-{
-  "status": "returned"
-}
-```
+Body tidak diperlukan. Route lama `PATCH /api/borrowings/BR_ID` tetap tersedia untuk kompatibilitas.
 
-## Database verification
+## 6. Skenario wajib
 
-```sql
-USE perpustakaan;
+- Login valid dan login dengan password salah.
+- Request endpoint protected tanpa token.
+- Daftar buku dan detail buku valid/tidak ditemukan.
+- Pinjam buku tersedia.
+- Pinjam buku tidak tersedia.
+- Pinjaman keempat ditolak.
+- Jatuh tempo tujuh hari setelah tanggal pinjam.
+- Riwayat akun sendiri dapat diakses, riwayat akun lain ditolak.
+- Pengembalian berhasil dan pengembalian ganda ditolak.
+- Status buku tersedia lagi setelah dikembalikan.
+- Perubahan status buku secara langsung ditolak.
 
-SELECT * FROM users;
-SELECT * FROM books;
-SELECT * FROM loans;
-```
+Impor `api-test/collection.json` ke Postman dan jalankan request secara berurutan. Simpan screenshot hasil tes aktual ke folder `api-test/` sebagai bukti tugas. Lihat `docs/API-CONTRACT.md` untuk detail request/response.

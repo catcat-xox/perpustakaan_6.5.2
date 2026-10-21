@@ -1,34 +1,54 @@
 {
   "info": {
-    "name": "Perpustakaan Microservices - 1 Server",
-    "_postman_id": "perpustakaan-microservices-1-server",
-    "description": "Postman Collection untuk pengujian aplikasi perpustakaan dengan satu server utama pada port 3000.",
+    "name": "Perpustakaan Microservices - UTS (Struktur Asli)",
+    "_postman_id": "perpustakaan-microservices-uts-original-structure",
+    "description": "Jalankan dari atas ke bawah. Login menyimpan tokenLimit untuk mahasiswa dengan 3 pinjaman aktif dan token untuk mahasiswa uji transaksi. Import database.sql lebih dulu.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tokenLimit",
+      "value": ""
+    },
+    {
+      "key": "loanId",
+      "value": ""
+    },
+    {
+      "key": "borrowedBookId",
+      "value": ""
+    }
+  ],
   "item": [
     {
-      "name": "Server Root",
+      "name": "Health - Books",
       "request": {
         "method": "GET",
-        "url": "http://localhost:3000/"
-      }
+        "header": [],
+        "url": "{{baseUrl}}/api/books/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Book Service Health",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:3000/api/books/health"
-      }
-    },
-    {
-      "name": "Borrowing Service Health",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:3000/api/borrowings/health"
-      }
-    },
-    {
-      "name": "Login",
+      "name": "Login valid - student 1 (limit test)",
       "request": {
         "method": "POST",
         "header": [
@@ -37,36 +57,27 @@
             "value": "application/json"
           }
         ],
+        "url": "{{baseUrl}}/api/auth/login",
         "body": {
           "mode": "raw",
-          "raw": "{\"studentId\":\"2310001\",\"password\":\"12345\"}"
-        },
-        "url": "http://localhost:3000/api/auth/login"
-      }
+          "raw": "{\"nim\": \"2310001\", \"password\": \"12345\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login success', () => pm.response.to.have.status(200));",
+              "const d = pm.response.json(); pm.collectionVariables.set('tokenLimit', d.token);"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Get All Books",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:3000/api/books"
-      }
-    },
-    {
-      "name": "Get Book by ID",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:3000/api/books/BK001"
-      }
-    },
-    {
-      "name": "Borrowing History",
-      "request": {
-        "method": "GET",
-        "url": "http://localhost:3000/api/borrowings/user/2310001"
-      }
-    },
-    {
-      "name": "Borrow Book",
+      "name": "Login valid - student 2",
       "request": {
         "method": "POST",
         "header": [
@@ -75,29 +86,468 @@
             "value": "application/json"
           }
         ],
+        "url": "{{baseUrl}}/api/auth/login",
         "body": {
           "mode": "raw",
-          "raw": "{\"studentId\":\"2310001\",\"bookId\":\"BK001\"}"
-        },
-        "url": "http://localhost:3000/api/borrowings"
-      }
+          "raw": "{\"nim\": \"2310002\", \"password\": \"12345\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login success', () => pm.response.to.have.status(200));",
+              "const d = pm.response.json(); pm.collectionVariables.set('token', d.token);"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Return Book",
+      "name": "Login invalid password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nim\": \"2310002\", \"password\": \"salah\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Wrong password returns 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login missing fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Validation returns 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List books",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('List books returns 200', () => pm.response.to.have.status(200)); pm.test('Response is array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Book detail existing",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/BK004"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Book detail returns 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Book detail missing",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/books/NO_SUCH_BOOK"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Missing book returns 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected endpoint without token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/books"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No token returns 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "History own account",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Own history returns 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "History another account denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings/student/2310001"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Other account history returns 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Limit 3 active books - 4th book rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenLimit}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"bookId\": \"BK004\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('4th active loan returns 409', () => pm.response.to.have.status(409)); pm.test('Limit code returned', () => pm.expect(pm.response.json().code).to.eql('ACTIVE_LOAN_LIMIT'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unavailable book rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"bookId\": \"BK001\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Unavailable book returns 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Borrow available book successfully",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"bookId\": \"BK004\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Borrow returns 201', () => pm.response.to.have.status(201));",
+              "const d = pm.response.json().borrowing;",
+              "pm.collectionVariables.set('loanId', d.id);",
+              "pm.collectionVariables.set('borrowedBookId', d.bookId);",
+              "pm.test('Loan status is borrowed', () => pm.expect(d.status).to.eql('borrowed'));",
+              "pm.test('Due date is seven days after loan date', () => {",
+              "  const a = new Date(d.tanggalPinjam + 'T00:00:00Z');",
+              "  const b = new Date(d.batasPengembalian + 'T00:00:00Z');",
+              "  pm.expect((b-a)/86400000).to.eql(7);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Return own loan",
       "request": {
         "method": "PATCH",
         "header": [
           {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings/{{loanId}}/return"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Return returns 200', () => pm.response.to.have.status(200)); pm.test('Loan status returned', () => pm.expect(pm.response.json().borrowing.status).to.eql('returned'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Return same loan again",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings/{{loanId}}/return"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Double return returns 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct book status change denied",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          },
+          {
             "key": "Content-Type",
             "value": "application/json"
           }
         ],
+        "url": "{{baseUrl}}/api/books/BK004/status",
         "body": {
           "mode": "raw",
-          "raw": "{\"status\":\"returned\"}"
-        },
-        "url": "http://localhost:3000/api/borrowings/BR_ID"
-      }
+          "raw": "{\"available\": false}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Direct status update returns 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Borrow missing book ID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"bookId\": \"NO_SUCH_BOOK\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Missing book returns 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Borrow missing bookId field",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/borrowings",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Missing bookId returns 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
     }
   ]
 }
